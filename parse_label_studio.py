@@ -20,7 +20,6 @@ def parse_label_studio_export(json_filepath):
         return ground_truth_data
 
     for task in tasks:
-        # --- THIS IS THE CORRECTED FILENAME LOGIC ---
         file_upload_name = task.get('file_upload')
         if not file_upload_name:
             continue
@@ -30,7 +29,6 @@ def parse_label_studio_export(json_filepath):
         except IndexError:
             print(f"Warning: Could not extract original filename from '{file_upload_name}'. Skipping task.")
             continue
-        # --- END OF CORRECTED LOGIC ---
 
         if 'annotations' not in task or not task['annotations'] or 'result' not in task['annotations'][0]:
             print(f"Warning: No valid annotations found for {original_filename}")

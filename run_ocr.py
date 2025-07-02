@@ -19,7 +19,6 @@ def parse_label_studio_for_boxes(json_filepath):
         return annotations
 
     for task in tasks:
-        # --- THIS IS THE NEW LOGIC BASED ON YOUR FINDING ---
         file_upload_name = task.get('file_upload')
         if not file_upload_name:
             continue
@@ -34,7 +33,6 @@ def parse_label_studio_for_boxes(json_filepath):
             continue
             
         annotations[original_filename] = []
-        # --- END OF NEW LOGIC ---
 
         if 'annotations' in task and task['annotations']:
             for ann in task['annotations'][0]['result']:

@@ -1,4 +1,3 @@
-# evaluate.py
 import jiwer
 import pandas as pd
 
@@ -29,7 +28,6 @@ def evaluate_tesseract_performance(ground_truth, ocr_output):
         gt_text = "" if gt_text is None else str(gt_text)
         hyp_text = "" if hyp_text is None else str(hyp_text)
 
-        # --- THIS IS THE CORRECTED LOGIC ---
         # Manually apply the transformation to the text first
         transformed_gt = transformation(gt_text)
         transformed_hyp = transformation(hyp_text)
@@ -37,7 +35,6 @@ def evaluate_tesseract_performance(ground_truth, ocr_output):
         # Now, call the functions with the pre-processed text
         word_error_rate = jiwer.wer(transformed_gt, transformed_hyp)
         char_error_rate = jiwer.cer(transformed_gt, transformed_hyp)
-        # --- END OF CORRECTION ---
 
         # Store sentences for aggregate calculation
         all_gt_sents.append(transformed_gt)
