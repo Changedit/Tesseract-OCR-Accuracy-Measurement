@@ -1,0 +1,13 @@
+# For Web Scraping (Section 1)
+requests
+beautifulsoup4
+Pillow
+
+# For OCR Execution & Pre-processing (Section 3)
+pytesseract
+opencv-python
+numpy
+
+# For Evaluation (Section 4)
+jiwer
+pandas
