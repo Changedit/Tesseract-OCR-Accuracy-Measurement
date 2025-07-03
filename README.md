@@ -55,7 +55,7 @@ This guide covers the manual setup process required to run the web application.
 1. **Clone the Repository**Bash
     
     ```bash
-    git clone <your-project-repo-url>
+    git clone https://github.com/Changedit/Tesseract-OCR-Accuracy-Measurement
     cd <your-project-repo-folder>
     ```
     
