@@ -45,10 +45,10 @@ This guide covers the manual setup process required to run the web application.
 
 ### Prerequisites
 
-- **Git**: To clone the repository.
-- **Conda**: For managing the Python environment.
-- **Python 3.10 or newer**: This is a strict requirement for the project's dependencies.
-- **Tesseract OCR Engine**: You must have Tesseract installed on your system and available in your system's `PATH`.
+- **Git**: You must have Git installed to clone the repositories.
+- **Conda**: This guide uses conda to manage Python environments. [Download Miniconda](https://docs.conda.io/en/latest/miniconda.html) if you don't have it.
+- **Python 3.10 or newer**: This is a strict requirement. The project dependencies, specifically label-studio-sdk, use features only available in Python 3.10+.
+- **Tesseract OCR Engine**: You must install Tesseract on your system and ensure its executable is in your system's PATH. You can verify this by running tesseract \--version in your terminal.
 
 ### Installation Steps
 
@@ -57,6 +57,9 @@ This guide covers the manual setup process required to run the web application.
     ```bash
     git clone https://github.com/Changedit/Tesseract-OCR-Accuracy-Measurement
     cd <your-project-repo-folder>
+    
+    # Clone the Label Studio ML backend repository into the project folder
+    git clone https://github.com/humansignal/label-studio-ml-backend
     ```
     
 2. **Create and Activate the Conda Environment**Bash
@@ -72,7 +75,21 @@ This guide covers the manual setup process required to run the web application.
 3. **Install Dependencies** Install all required Python packages using the `requirements.txt` file.Bash
     
     ```bash
+    # 1. Install the main project's requirements
     pip install -r requirements.txt
+
+    # 2. Navigate to the ML backend repo's root and install its requirements
+    cd label-studio-ml-backend
+    pip install -r requirements.txt
+
+    # 3. Install the ML backend package in "editable" mode
+    pip install -e .
+
+    # 4. Install the specific requirements for the Tesseract example
+    pip install -r label_studio_ml/examples/tesseract/requirements.txt
+
+    # 5. Return to the main project directory
+    cd ../
     ```
     
 
@@ -80,12 +97,43 @@ This guide covers the manual setup process required to run the web application.
 
 ## How to Use the Application
 
-### Step 1: Prepare Your Data
+### **Step 1: Prepare Data and Start Label Studio**
 
-1. Place all of your images in the `/images` directory.
-2. Place your exported ground truth JSON file from Label Studio into the `/ground_truth` directory.
+1. Place all your images in the `/images` directory.
+2. (Optional) Use the `web_scraper.py` to gather more images.
+3. **Start Label Studio separately**. If you have it installed locally, run it from its own terminal.
 
-### Step 2: Start the Web Application
+### **Step 2: Start the ML Backend Server**
+
+This step connects your Tesseract model to Label Studio.
+
+1. Open a **new terminal** window.
+2. Activate the conda environment: conda activate ocr-eval
+3. Navigate to the Tesseract example directory: `cd label-studio-ml-backend/label_studio_ml/examples/tesseract`
+4. Run the server script. This command starts the web server that will listen for requests from Label Studio.
+    - **On Linux or macOS:**
+        
+        ```bash
+        LOCAL_FILES_SERVING_ENABLED=true python _wsgi.py
+        ```
+        
+    - **On Windows (PowerShell):**
+        
+        ```powershell
+        $env:LOCAL_FILES_SERVING_ENABLED="true"; python _wsgi.py
+        ```
+        
+
+Keep this terminal open. You will see log output here as you work.
+
+### **Step 3: Annotate Your Data**
+
+1. **Connect the Backend**: In the Label Studio UI, go to your project's **Settings > Machine Learning**. Click "Add Model" and enter the URL of the running backend (e.g., [http://localhost:9090](http://localhost:9090/)).
+2. **Enable Interactive Predictions**: Make sure the **"Use for interactive preannotations"** toggle is switched on.
+3. **Label Your Images**: Go to the labeling interface. When you draw a bounding box around a piece of text, the ML backend will automatically fill in the recognized text for you to review and correct.
+4. **Export Your Data**: Once you're done labeling, export your annotations in **JSON format** and place the file in the `/ground_truth` directory.
+
+### Step 4: Start the Web Application
 
 1. Make sure your `ocr-eval` conda environment is active.
 2. Run the `app.py` script from your terminal:Bash
@@ -96,14 +144,14 @@ This guide covers the manual setup process required to run the web application.
     
 3. Open your web browser and navigate to **`http://127.0.0.1:5000`**.
 
-### Step 3: Run an Evaluation
+### Step 5: Run an Evaluation
 
 1. On the main page, click the button to upload your **ground truth JSON file**.
 2. In the text input field, provide the **full, absolute local path** to your `/images` directory.
 3. Select the **pre-processing options** you want to test using the checkboxes.
 4. Click **"Start Evaluation"**.
 
-### Step 4: Analyze the Results
+### Step 6: Analyze the Results
 
 The application will process your data and display the interactive results dashboard.
 
