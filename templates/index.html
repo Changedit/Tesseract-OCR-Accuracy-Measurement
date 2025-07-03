@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tesseract OCR Evaluation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { max-width: 700px; }
+        .card { border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .card-header { background-color: #0d6efd; color: white; font-weight: bold; }
+        .btn-primary { background-color: #0d6efd; border: none; }
+        .flash-message { margin-top: 1rem; }
+        .options-section { border-top: 1px solid #dee2e6; padding-top: 1rem; margin-top: 1rem;}
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header text-center">
+                Tesseract OCR Accuracy Evaluation Framework
+            </div>
+            <div class="card-body p-4">
+                <p class="card-text text-center mb-4">
+                    Upload your ground truth file, provide the local path to your images, and select pre-processing options.
+                </p>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} flash-message" role="alert">
+                        {{ message|safe }}
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+                
+                <form method=post enctype=multipart/form-data>
+                    <div class="mb-3">
+                        <label for="json_file" class="form-label fw-bold">1. Ground Truth File (.json)</label>
+                        <input class="form-control" type="file" id="json_file" name="json_file" accept=".json" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image_folder_path" class="form-label fw-bold">2. Absolute Local Path to Image Folder</label>
+                        <input class="form-control" type="text" id="image_folder_path" name="image_folder_path" placeholder="e.g., /Users/yourname/Documents/Project/images" required>
+                    </div>
+
+                    <div class="options-section">
+                        <h6 class="fw-bold">3. Pre-processing Options</h6>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="apply_binarization" name="apply_binarization" checked>
+                            <label class="form-check-label" for="apply_binarization">Apply Binarization (Grayscale & Threshold)</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="apply_rescaling" name="apply_rescaling">
+                            <label class="form-check-label" for="apply_rescaling">Apply Rescaling (Enlarge small text)</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="apply_deskew" name="apply_deskew">
+                            <label class="form-check-label" for="apply_deskew">Apply Deskewing (Straighten tilted text)</label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Start Evaluation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
