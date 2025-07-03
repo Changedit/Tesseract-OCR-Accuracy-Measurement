@@ -11,3 +11,6 @@ numpy
 # For Evaluation (Section 4)
 jiwer
 pandas
+
+# For WebUI
+Flask
