@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OCR Evaluation Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f0f2f5; }
+        .kpi-card { border: none; border-radius: 0.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        .kpi-card .card-body { padding: 1.5rem; }
+        .kpi-title { font-size: 0.9rem; font-weight: 600; color: #6c757d; text-transform: uppercase; }
+        .kpi-value { font-size: 2.25rem; font-weight: 700; color: #212529; }
+        .chart-container { background-color: white; padding: 1.5rem; border-radius: 0.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .table th, .table td { text-align: center; vertical-align: middle; }
+        .table td:first-child, .table th:first-child { text-align: left; min-width: 250px; }
+        .filename-link { cursor: pointer; color: #0d6efd; text-decoration: underline; }
+        .modal-body .image-container { position: relative; display: inline-block; font-size: 0; }
+        #boxContainer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .bounding-box { position: absolute; border: 2px solid rgba(255, 0, 0, 0.7); cursor: pointer; box-sizing: border-box; }
+        .bounding-box:hover { background-color: rgba(255, 0, 0, 0.2); }
+        .text-danger-emphasis { color: #dc3545 !important; }
+        .text-warning-emphasis { color: #ffc107 !important; }
+        .text-success-emphasis { color: #198754 !important; }
+        .sortable-header { cursor: pointer; }
+        .sortable-header:hover { color: #0d6efd; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-4">
+        <h2 class="mb-4">OCR Evaluation Dashboard</h2>
+
+        <!-- KPI Cards Section -->
+        <div class="row">
+            <div class="col-md-3"><div class="card kpi-card"><div class="card-body"><div class="kpi-title">Word Error Rate (WER)</div><div class="kpi-value">{{ "%.2f"|format(aggregate_results['WER (%)']) }}%</div></div></div></div>
+            <div class="col-md-3"><div class="card kpi-card"><div class="card-body"><div class="kpi-title">Character Error Rate (CER)</div><div class="kpi-value">{{ "%.2f"|format(aggregate_results['CER (%)']) }}%</div></div></div></div>
+            <div class="col-md-3"><div class="card kpi-card"><div class="card-body"><div class="kpi-title">Total Words</div><div class="kpi-value">{{ aggregate_results['Word Count (GT)'] }}</div></div></div></div>
+            <div class="col-md-3"><div class="card kpi-card"><div class="card-body"><div class="kpi-title">Total Characters</div><div class="kpi-value">{{ aggregate_results['Character Count (GT)'] }}</div></div></div></div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4"><div class="chart-container"><h5 class="mb-3">Top 10 Worst Images by WER</h5><canvas id="werChart"></canvas></div></div>
+            <div class="col-lg-6 mb-4"><div class="chart-container"><h5 class="mb-3">Top 10 Worst Images by CER</h5><canvas id="cerChart"></canvas></div></div>
+        </div>
+
+        <!-- Detailed Table Section -->
+        <div class="card">
+            <div class="card-header">Detailed Evaluation Report</div>
+            <div class="card-body">
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search for image by name...">
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable-header" onclick="sortTable(0, false)">Image Filename <span></span></th>
+                                <th class="sortable-header" onclick="sortTable(1, true)">Word Count (GT) <span></span></th>
+                                <th class="sortable-header" onclick="sortTable(2, true)">Character Count (GT) <span></span></th>
+                                <th class="sortable-header" onclick="sortTable(3, true)">WER (%) <span></span></th>
+                                <th class="sortable-header" onclick="sortTable(4, true)">CER (%) <span></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            {% for row in detailed_results %}
+                            <tr>
+                                <td><a class="filename-link" data-filename="{{ row['Image Filename'] }}">{{ row['Image Filename'] }}</a></td>
+                                <td>{{ row['Word Count (GT)'] }}</td>
+                                <td>{{ row['Character Count (GT)'] }}</td>
+                                <td class="fw-bold {% if row['WER (%)'] > 50 %}text-danger-emphasis{% elif row['WER (%)'] > 25 %}text-warning-emphasis{% else %}text-success-emphasis{% endif %}">{{ "%.2f"|format(row['WER (%)']) }}</td>
+                                <td class="fw-bold {% if row['CER (%)'] > 20 %}text-danger-emphasis{% elif row['CER (%)'] > 10 %}text-warning-emphasis{% else %}text-success-emphasis{% endif %}">{{ "%.2f"|format(row['CER (%)']) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                 <div class="text-center mt-4"><a href="/" class="btn btn-primary">Run New Evaluation</a></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Image Viewer -->
+    <div class="modal fade" id="imageModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="imageModalLabel">Image Viewer</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8"><div class="image-container"><img id="modalImage" src="" class="img-fluid"><div id="boxContainer"></div></div></div>
+                        <div class="col-md-4"><h5>Text Comparison</h5><div id="textComparison" class="p-2 bg-light rounded"><p class="text-muted">Click on a bounding box to see the text comparison.</p></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const fullData = {{ full_data_json | safe }};
+        const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+        const resultsData = {{ detailed_results | tojson }};
+
+        // --- Helper function to open the image modal ---
+        function openModalForFilename(filename) {
+            const data = fullData[filename];
+            if (!data) return;
+
+            const modalImage = document.getElementById('modalImage');
+            const boxContainer = document.getElementById('boxContainer');
+            const textComparisonDiv = document.getElementById('textComparison');
+
+            modalImage.src = `/images/${filename}`;
+            boxContainer.innerHTML = '';
+            textComparisonDiv.innerHTML = '<p class="text-muted">Click on a bounding box.</p>';
+
+            modalImage.onload = () => {
+                data.boxes.forEach(box => {
+                    const boxDiv = document.createElement('div');
+                    boxDiv.className = 'bounding-box';
+                    boxDiv.style.left = `${box.coords.x}%`;
+                    boxDiv.style.top = `${box.coords.y}%`;
+                    boxDiv.style.width = `${box.coords.width}%`;
+                    boxDiv.style.height = `${box.coords.height}%`;
+                    boxDiv.addEventListener('click', () => {
+                        textComparisonDiv.innerHTML = `
+                            <h6>Ground Truth</h6><p class="bg-white p-2 rounded text-success-emphasis"><code>${box.gt_text || '(empty)'}</code></p>
+                            <h6>OCR Output</h6><p class="bg-white p-2 rounded text-danger-emphasis"><code>${box.ocr_text || '(empty)'}</code></p>
+                        `;
+                    });
+                    boxContainer.appendChild(boxDiv);
+                });
+            };
+            imageModal.show();
+        }
+
+        // --- Chart Rendering Logic ---
+        const werSorted = [...resultsData].sort((a, b) => b['WER (%)'] - a['WER (%)']).slice(0, 10);
+        const cerSorted = [...resultsData].sort((a, b) => b['CER (%)'] - a['CER (%)']).slice(0, 10);
+
+        const chartOptions = (sortedData) => ({
+            type: 'bar',
+            options: {
+                indexAxis: 'y',
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const chartElement = elements[0];
+                        const index = chartElement.index;
+                        const filename = sortedData[index]['Image Filename'];
+                        openModalForFilename(filename);
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('werChart'), { ...chartOptions(werSorted), data: { labels: werSorted.map(item => item['Image Filename'].substring(0, 20) + '...'), datasets: [{ label: 'WER (%)', data: werSorted.map(item => item['WER (%)']), backgroundColor: 'rgba(220, 53, 69, 0.6)' }] } });
+        new Chart(document.getElementById('cerChart'), { ...chartOptions(cerSorted), data: { labels: cerSorted.map(item => item['Image Filename'].substring(0, 20) + '...'), datasets: [{ label: 'CER (%)', data: cerSorted.map(item => item['CER (%)']), backgroundColor: 'rgba(255, 193, 7, 0.6)' }] } });
+
+        // --- Event listener for table links ---
+        document.querySelectorAll('.filename-link').forEach(link => {
+            link.addEventListener('click', event => openModalForFilename(event.target.dataset.filename));
+        });
+
+        // --- Search Bar Logic ---
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            const rows = document.getElementById('tableBody').getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                let filename = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+                if (filename.includes(filter)) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        });
+
+        // --- Table Sorting Logic ---
+        const sortDirections = {};
+        function sortTable(columnIndex, isNumeric) {
+            const table = document.getElementById('resultsTable');
+            const tbody = table.tBodies[0];
+            const rows = Array.from(tbody.rows);
+            const direction = sortDirections[columnIndex] = !(sortDirections[columnIndex]);
+
+            // Reset other sort indicators
+            document.querySelectorAll('#resultsTable th span').forEach((span, index) => {
+                if (index !== columnIndex) span.textContent = '';
+            });
+            
+            rows.sort((a, b) => {
+                let valA = a.cells[columnIndex].textContent.trim();
+                let valB = b.cells[columnIndex].textContent.trim();
+
+                if (isNumeric) {
+                    valA = parseFloat(valA);
+                    valB = parseFloat(valB);
+                }
+                
+                if (valA < valB) return direction ? -1 : 1;
+                if (valA > valB) return direction ? 1 : -1;
+                return 0;
+            });
+
+            // Update sort indicator
+            table.querySelector(`th:nth-child(${columnIndex + 1}) span`).textContent = direction ? ' ▲' : ' ▼';
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+    </script>
+</body>
+</html>
